@@ -1,0 +1,13 @@
+{
+    "IsEncrypted": false,
+  "Values": {
+    "KafkaConnection": "",
+    "AzureWebJobsStorage": "",
+    "BrokerList": "",
+    "Topic": "",
+    "ConsumeGroup": "",
+    "Password": "",
+    "CosmosDbUrl": "",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet"
+  }
+}
