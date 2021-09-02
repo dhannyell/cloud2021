@@ -31,14 +31,16 @@ namespace AzureFunction
                           Password = "%Password%",
                           Protocol = BrokerProtocol.SaslSsl,
                           AuthenticationMode = BrokerAuthenticationMode.Plain,
-                          ConsumerGroup = "$Default")] KafkaEventData<string>[] events, ILogger log)
+                          ConsumerGroup = "$Default")] KafkaEventData<string> events, ILogger log)
         {
-            
-            foreach (KafkaEventData<string> eventData in events)
+
+            //foreach (KafkaEventData<string> eventData in events)
+            //{
+            if (events.Partition == 0)
             {
                 EventHubProducerClient producerClient;
 
-                Acao acao = JsonConvert.DeserializeObject<Acao>(eventData.Value);
+                Acao acao = JsonConvert.DeserializeObject<Acao>(events.Value);
 
                 var response = await $"https://api.hgbrasil.com/".AppendPathSegment("finance/stock_price")
                     .SetQueryParams(new { key = "79d3c293", symbol = acao.Name }).GetJsonAsync<dynamic>().ConfigureAwait(false);
@@ -82,8 +84,9 @@ namespace AzureFunction
                 log.LogInformation($"Data Send to partition: {partion}");
 
 
-                log.LogInformation($"C# Kafka trigger function processed a message: {eventData.Value} Partition: {eventData.Partition}");
+                log.LogInformation($"C# Kafka trigger function processed a message: {events.Value} Partition: {events.Partition}");
             }
+            //}
         }
     }
 }
