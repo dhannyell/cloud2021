@@ -1,3 +1,5 @@
+using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
 using AzureFunction.Data;
 using AzureFunction.Models;
 using Flurl;
@@ -7,6 +9,8 @@ using Microsoft.Azure.WebJobs.Extensions.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AzureFunction
@@ -32,28 +36,52 @@ namespace AzureFunction
             
             foreach (KafkaEventData<string> eventData in events)
             {
+                EventHubProducerClient producerClient;
+
                 Acao acao = JsonConvert.DeserializeObject<Acao>(eventData.Value);
 
                 var response = await $"https://api.hgbrasil.com/".AppendPathSegment("finance/stock_price")
-                    .SetQueryParams(new { key = "", symbol = acao.Name }).GetJsonAsync<dynamic>().ConfigureAwait(false);
+                    .SetQueryParams(new { key = "79d3c293", symbol = acao.Name }).GetJsonAsync<dynamic>().ConfigureAwait(false);
 
                 var name = acao.Name.ToUpper();
 
-                if(response.results != null)
+
+                var results = response.results;
+                var acaoCompany = results.SelectToken($"{name}");
+                double? price = acaoCompany?.SelectToken("price");
+
+                if (price == null)
+                    price = 0;
+
+                acao.Cotacao = price;
+
+                await AcoesRepository.Save(acao);
+
+                var password = Environment.GetEnvironmentVariable("Password");
+                var topicName = Environment.GetEnvironmentVariable("Topic");
+
+                producerClient = new EventHubProducerClient(password, topicName);
+
+                int partion = 1;
+
+                if (price == 0)
+                    partion = 2;
+
+                var sendOptions = new SendEventOptions
                 {
-                    var results = response.results;
-                    var acaoCompany = results.SelectToken($"{name}");
-                    double? price = acaoCompany?.SelectToken("price");
+                    PartitionId = $"{partion}"
+                };
 
-                    if (price == null)
-                        price = 0;
+                string outputModel = JsonConvert.SerializeObject(acao);
 
-                    acao.Cotacao = price;
+                List<EventData> data = new List<EventData>();
 
-                    await AcoesRepository.Save(acao);
-                }
-               
-                
+                data.Add(new EventData(outputModel));
+
+                await producerClient.SendAsync(data, sendOptions).ConfigureAwait(false);
+                log.LogInformation($"Data Send to partition: {partion}");
+
+
                 log.LogInformation($"C# Kafka trigger function processed a message: {eventData.Value} Partition: {eventData.Partition}");
             }
         }

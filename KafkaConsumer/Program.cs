@@ -1,4 +1,6 @@
 ﻿using Confluent.Kafka;
+using KafkaConsumer.Models;
+using Newtonsoft.Json;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using System;
@@ -27,7 +29,7 @@ namespace KafkaConsumer
             var config = new ConsumerConfig
             {
                 BootstrapServers = bootstrapServer,
-                GroupId = $"{topicName}-group-0",
+                GroupId = $"grupo1",
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 SecurityProtocol = SecurityProtocol.SaslSsl,
                 SaslMechanism = SaslMechanism.Plain,
@@ -44,7 +46,7 @@ namespace KafkaConsumer
 
             try
             {
-                using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+                using (var consumer = new ConsumerBuilder<string, string>(config).Build())
                 {
                     consumer.Subscribe(topicName);
 
@@ -53,8 +55,18 @@ namespace KafkaConsumer
                         while (true)
                         {
                             var cr = consumer.Consume(cts.Token);
+
+                            Acao acao = JsonConvert.DeserializeObject<Acao>(cr.Message.Value);
+
                             logger.Information(
-                                $"Mensagem lida: {cr.Message.Value}");
+                                $"\n\n -------------- \n"+
+                                $"Mensagem lida \n" +
+                                $"Nome: {acao.Name} \n" +
+                                $"Data: {acao.Date.ToString()} \n" +
+                                $"Cotaçao: {acao.Cotacao} \n" + 
+                                $"Consume Group: {config.GroupId} \n" +
+                                $"Particao: {cr.Partition} \n" + 
+                                $"Offset: {cr.Offset} \n");
                         }
                     }
                     catch (OperationCanceledException)

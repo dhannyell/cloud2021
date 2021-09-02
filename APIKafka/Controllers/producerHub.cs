@@ -36,14 +36,11 @@ namespace APIKafka.Controllers
 
             var sendOptions = new SendEventOptions
             {
-                PartitionId = "1"
+                PartitionId = $"{Convert.ToInt32(model.Particao)}"
             };
-
-            //using EventDataBatch eventBatch = await producerClient.CreateBatchAsync();
 
             string outputModel = JsonConvert.SerializeObject(model);
 
-            //eventBatch.TryAdd(new EventData(outputModel));
 
             List<EventData> data = new List<EventData>();
 

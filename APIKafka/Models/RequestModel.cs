@@ -32,5 +32,8 @@ namespace APIKafka.Models
 
         [JsonProperty("cotacao")]
         public double Cotacao { get; set; }
+
+        [JsonIgnore]
+        public Particao Particao { get; set; }
     }
 }
