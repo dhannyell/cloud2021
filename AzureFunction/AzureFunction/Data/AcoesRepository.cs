@@ -26,9 +26,12 @@ namespace AzureFunction.Data
                 var database = client.GetDatabase("DBAcoes");
                 var collection = database.GetCollection<AcaoInDb>("Acoes");
 
-                AcaoInDb acaoInDb = new AcaoInDb();
-                acaoInDb.Codigo = "KVM";
-                acaoInDb.Data = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                var acaoInDb = new AcaoInDb
+                {
+                    Name = acao.Name,
+                    Date = acao.Date,
+                    Cotacao = acao.Cotacao
+                };
 
                 await collection.InsertOneAsync(acaoInDb);
 

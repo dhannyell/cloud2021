@@ -8,7 +8,8 @@ namespace APIKafka.Models
 {
     public class RequestModel
     {
-        private DateTime _date;
+        private readonly DateTime _date;
+        private string _name;
 
         public RequestModel()
         {
@@ -17,7 +18,11 @@ namespace APIKafka.Models
 
         [JsonRequired]
         [JsonProperty("name")]
-        public string Name { get; set; }
+        public string Name 
+        {
+            get => _name;
+            set => _name = value.ToLower();
+        }
 
         [JsonProperty("date")]
         public DateTime Date

@@ -1,4 +1,5 @@
 ﻿using APIKafka.Models;
+using APIKafka.ViewModel;
 using Confluent.Kafka;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
@@ -25,7 +26,7 @@ namespace APIKafka.Controllers
             _configuration = configuration;
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Get([FromBody] RequestModel model)
         {
             var bootstrapServer = _configuration["bootstrapServer"];
@@ -34,20 +35,6 @@ namespace APIKafka.Controllers
 
             _logger.LogInformation($"BootstrapServers: {bootstrapServer}");
 
-
-            var jsonSerializerConfig = new JsonSerializerConfig
-            {
-                BufferBytes = 100
-            };
-
-            var schemaRegistryConfig = new SchemaRegistryConfig
-            {
-                // Note: you can specify more than one schema registry url using the
-                // schema.registry.url property for redundancy (comma separated list). 
-                // The property name is not plural to follow the convention set by
-                // the Java implementation.
-                Url = ""
-            };
 
             try
             {
@@ -60,21 +47,27 @@ namespace APIKafka.Controllers
                     SaslPassword = password
                 };
 
-                string output = JsonConvert.SerializeObject(model); // {"ExpiryDate":new Date(1230375600000),"Price":0}
+                string outputModel = JsonConvert.SerializeObject(model);
 
-                var kek = JsonConvert.DeserializeObject<RequestModel>(output);
-
-                //using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
-                using (var producer = new ProducerBuilder<Null, RequestModel>(config)
-                    .SetValueSerializer(new JsonSerializer<RequestModel>(null, jsonSerializerConfig)).Build())
+         
+                using (var producer = new ProducerBuilder<string, string>(config).Build())
                 {
                     var result = await producer.ProduceAsync(
-                        topicName, new Message<Null, RequestModel> { Value = model }
-                    ).ContinueWith(task => task.IsFaulted
-                            ? $"error producing message: {task.Exception.Message}"
-                            : $"produced to: {task.Result.TopicPartitionOffset}");
+                        topicName, new Message<string, string> { Value = outputModel, Key="1" }
+                    );
 
-                    
+                    var ViewModel = new RequestViewModel
+                    {
+                        Name = model.Name,
+                        Cotacao = model.Cotacao,
+                        Date = model.Date,
+                        Partition = result.Partition,
+                        Status = result.Status.ToString(),
+                        Offset = result.Offset.Value,
+                        TopicPartition =  result.TopicPartition.Partition
+                    };
+
+                    return Ok(ViewModel);
                 }
             }
             catch (Exception ex)
@@ -82,7 +75,7 @@ namespace APIKafka.Controllers
                 _logger.LogInformation(ex.Message);
             }
 
-            return Ok();
+            return BadRequest();
 
         }
     }

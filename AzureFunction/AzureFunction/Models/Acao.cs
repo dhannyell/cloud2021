@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,13 +8,13 @@ namespace AzureFunction.Models
 {
     public class Acao
     {
-        private string _codigo;
-        public string Codigo
-        {
-            get => _codigo;
-            set => _codigo = value?.Trim().ToUpper();
-        }
+        [JsonProperty("name")]
+        public string Name { get; set; }
 
-        public double? Valor { get; set; }
+        [JsonProperty("date")]
+        public DateTime Date { get; set; }
+
+        [JsonProperty("cotacao")]
+        public double? Cotacao { get; set; }
     }
 }
